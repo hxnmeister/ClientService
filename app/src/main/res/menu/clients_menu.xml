@@ -6,4 +6,13 @@
         android:id="@+id/addClientMenuItem"
         android:title="Add Client"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/clearMenuItem"
+        android:title="Clear" />
+    <item
+        android:id="@+id/importMenuItem"
+        android:title="Import" />
+    <item
+        android:id="@+id/exportMenuItem"
+        android:title="Export" />
 </menu>

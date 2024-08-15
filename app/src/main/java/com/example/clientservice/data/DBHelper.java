@@ -1,6 +1,7 @@
 package com.example.clientservice.data;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,22 +13,32 @@ import androidx.annotation.Nullable;
 
 import com.example.clientservice.models.Client;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DBHelper extends SQLiteOpenHelper {
+import lombok.Getter;
+import lombok.Setter;
 
-    public final String ID = "id";
-    public final String SURNAME = "surname";
-    public final String NAME = "name";
-    public final String PHONE = "phone";
-    public final String DATE = "date";
+@Getter
+public class DBHelper extends SQLiteOpenHelper {
+    private final String ID = "id";
+    private final String SURNAME = "surname";
+    private final String NAME = "name";
+    private final String PHONE = "phone";
+    private final String DATE = "date";
+
+    @Setter
+    private String tableName = "clients";
 
     public DBHelper(@Nullable Context context) {
         super(context, "clients.db", null, 1);
+    }
+
+    public DBHelper(@Nullable Context context, String tableName) {
+        super(context, "clients.db", null, 1);
+
+        this.tableName = tableName;
     }
 
     @Override
@@ -40,7 +51,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     }
 
-    public void createTable(@NotNull String tableName) {
+    public void createTable() {
         String query = "CREATE TABLE IF NOT EXISTS %s(" +
                 "%s INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "%s TEXT, " +
@@ -48,13 +59,12 @@ public class DBHelper extends SQLiteOpenHelper {
                 "%s TEXT, " +
                 "%s TEXT)";
 
-        query = String.format(query, tableName, ID, SURNAME, NAME, PHONE, DATE);
-        getWritableDatabase().execSQL(query);
+        getWritableDatabase().execSQL(String.format(query, tableName, ID, SURNAME, NAME, PHONE, DATE));
 
         Log.d("TAG", "table with name " + tableName + " created!");
     }
 
-    public void dropTable(@NotNull String tableName) {
+    public void dropTable() {
         String query = "DROP TABLE IF EXISTS " + tableName;
 
         getWritableDatabase().execSQL(query);
@@ -62,25 +72,24 @@ public class DBHelper extends SQLiteOpenHelper {
         Log.d("TAG", "Table " + tableName + " dropped!");
     }
 
-    public void insert(@NonNull Client client, @NonNull String tableName) {
-        String query = "INSERT INTO %s(%s, %s, %s, %s) " +
-                "VALUES('%s', '%s', '%s', '%s')";
+    public long insert(@NonNull Client client) {
+        ContentValues values = new ContentValues();
 
-        query = String.format(query, tableName,
-                SURNAME, NAME, PHONE, DATE,
-                client.getSurname(), client.getName(), client.getPhone(), client.getDate());
-
-        getWritableDatabase().execSQL(query);
+        values.put("name", client.getName());
+        values.put("surname", client.getSurname());
+        values.put("phone", client.getPhone());
+        values.put("date", client.getDate().toString());
 
         Log.d("TAG", "Client " + client.getName() + " inserted!");
+
+        return getWritableDatabase().insert("clients", null, values);
     }
 
 
     @SuppressLint("Range")
-    public List<Client> findAll(@NonNull String tableName) {
+    public List<Client> findAll() {
         List<Client> clientList = new ArrayList<>();
-        String query = "SELECT *" +
-                "FROM " + tableName;
+        String query = "SELECT * FROM " + tableName;
 
         try(Cursor cursor = getReadableDatabase().rawQuery(query, new String[]{})){
             while (cursor.moveToNext()) {
@@ -98,5 +107,29 @@ public class DBHelper extends SQLiteOpenHelper {
         }
 
         return clientList;
+    }
+
+    public void insertMany(@NonNull List<Client> clients) {
+        for (Client client : clients) {
+            insert(client);
+        }
+    }
+
+    public void deleteById(int id) {
+        String whereClause = ID + " = ?";
+
+        getWritableDatabase().delete(tableName, whereClause, new String[]{ String.valueOf(id) });
+    }
+
+    public void update(@NonNull Client client) {
+        ContentValues values = new ContentValues();
+        String whereClause = ID + " = ?";
+
+        values.put("name", client.getName());
+        values.put("surname", client.getSurname());
+        values.put("phone", client.getPhone());
+        values.put("date", client.getDate().toString());
+
+        getWritableDatabase().update(tableName, values, whereClause, new String[]{ String.valueOf(client.getId()) });
     }
 }
